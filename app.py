@@ -573,6 +573,18 @@ def api_compare():
         return jsonify({"error": str(e)}), 500
 
 
+@app.route("/debug")
+def debug():
+    import os
+    return jsonify({
+        "root_path": app.root_path,
+        "static_folder": app.static_folder,
+        "static_folder_exists": os.path.isdir(app.static_folder),
+        "static_contents": os.listdir(app.static_folder) if os.path.isdir(app.static_folder) else "MISSING",
+        "root_contents": os.listdir(app.root_path),
+    })
+
+
 @app.route("/")
 def index():
     return send_from_directory(app.static_folder, "index.html")
