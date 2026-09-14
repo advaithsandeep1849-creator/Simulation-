@@ -62,16 +62,17 @@ string field "reasoning" (2-3 sentences explaining your choices)."""
 
 
 # ---------------------------------------------------------------------------
-# DeepSeek proxy (unchanged behaviour; now also timestamps calls for
-# provenance so AI-derived numbers can be distinguished from evidence)
+# AI calibration proxy — Groq (OpenAI-compatible, free tier, no card
+# required). Timestamps calls for provenance so AI-derived numbers can be
+# distinguished from evidence.
 # ---------------------------------------------------------------------------
 
-def call_deepseek(api_key, prompt, json_mode=False):
-    body = {"model": "deepseek-chat", "messages": [{"role": "user", "content": prompt}], "temperature": 0.4}
+def call_ai(api_key, prompt, json_mode=False):
+    body = {"model": "openai/gpt-oss-120b", "messages": [{"role": "user", "content": prompt}], "temperature": 0.4}
     if json_mode:
         body["response_format"] = {"type": "json_object"}
     req = urllib.request.Request(
-        "https://api.deepseek.com/chat/completions",
+        "https://api.groq.com/openai/v1/chat/completions",
         data=json.dumps(body).encode("utf-8"),
         headers={"Content-Type": "application/json", "Authorization": f"Bearer {api_key}"},
         method="POST",
@@ -85,11 +86,11 @@ def call_deepseek(api_key, prompt, json_mode=False):
 def api_calibrate():
     import datetime
     payload = request.get_json(force=True)
-    api_key = payload.get("apiKey", "")
+    api_key = payload.get("apiKey", "").strip()
     if not api_key:
         return jsonify({"error": "No API key provided"}), 400
     try:
-        content = call_deepseek(api_key, CALIBRATION_PROMPT, json_mode=True)
+        content = call_ai(api_key, CALIBRATION_PROMPT, json_mode=True)
         parsed = json.loads(content)
         params = {**DEFAULT_PARAMS, **parsed}
         params["_provenance"] = {
@@ -105,7 +106,7 @@ def api_calibrate():
 @app.route("/api/narrative", methods=["POST"])
 def api_narrative():
     payload = request.get_json(force=True)
-    api_key = payload.get("apiKey", "")
+    api_key = payload.get("apiKey", "").strip()
     s = payload.get("summary", {})
     cfg = payload.get("cfg", {})
     if not api_key:
@@ -125,7 +126,7 @@ def api_narrative():
         f"tone suitable for a project report. Do not claim this is observed or measured data."
     )
     try:
-        text = call_deepseek(api_key, prompt, json_mode=False)
+        text = call_ai(api_key, prompt, json_mode=False)
         return jsonify({"text": text})
     except Exception as e:
         return jsonify({"error": str(e)}), 502
