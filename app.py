@@ -585,9 +585,22 @@ def debug():
     })
 
 
+def find_index_file():
+    """Case-insensitive lookup so a file uploaded as index.HTML (or any
+    other casing) via a mobile GitHub upload still gets served correctly."""
+    import os
+    try:
+        for fname in os.listdir(app.static_folder):
+            if fname.lower() == "index.html":
+                return fname
+    except FileNotFoundError:
+        pass
+    return "index.html"
+
+
 @app.route("/")
 def index():
-    return send_from_directory(app.static_folder, "index.html")
+    return send_from_directory(app.static_folder, find_index_file())
 
 
 if __name__ == "__main__":
